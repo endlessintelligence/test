@@ -56,24 +56,6 @@ python run.py
 ## 项目结构
 
 ```
-app/
-├── run.py                  # 程序入口
-├── config.py               # 配置
-├── requirements.txt        # 依赖
-├── .gitignore
-├── README.md
-├── datasets/               # 5个内置数据集
-├── scripts/                # 数据集生成脚本
-├── app/
-│   ├── routes/             # 6个功能路由
-│   ├── utils/              # 数据处理与分析逻辑
-│   ├── templates/          # 页面模板
-│   ├── static/             # CSS/JS
-│   ├── uploads/            # 上传文件目录
-│   └── results/            # 结果输出目录
-```
-
----
 
 ## 常见问题
 
