@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+.vscode/
+.idea/
+*.pkl
+app/uploads/*
+!app/uploads/.gitkeep
+app/results/*
+!app/results/.gitkeep

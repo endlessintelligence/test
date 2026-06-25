@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}数据管理 - 数据挖掘分析平台{% endblock %}
+{% block content %}
+<div class="row mb-3">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">首页</a></li>
+                <li class="breadcrumb-item active">数据管理</li>
+            </ol>
+        </nav>
+        <h3><i class="fas fa-upload text-primary"></i> 数据管理</h3>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- 左侧：上传 + 内置数据集 -->
+    <div class="col-md-5">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-cloud-upload-alt"></i> 上传数据文件</h5>
+            </div>
+            <div class="card-body">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="file" class="form-label">选择文件 (CSV / Excel)</label>
+                        <input type="file" class="form-control" id="file" name="file" accept=".csv,.xlsx,.xls" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-upload"></i> 上传并加载
+                    </button>
+                </form>
+                <hr>
+                <div class="text-center text-muted small">
+                    <i class="fas fa-info-circle"></i> 支持 CSV (UTF-8) 和 Excel 格式，最大 50MB
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mt-3">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-database"></i> 内置数据集</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for ds in builtin_datasets %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">{{ ds.name }}</h6>
+                            <small class="text-muted">{{ ds.desc }}</small>
+                            <span class="badge bg-light text-dark ms-2">{{ ds.records }}</span>
+                        </div>
+                        <button class="btn btn-sm btn-outline-success load-dataset-btn" data-dataset="{{ ds.id }}">
+                            <i class="fas fa-folder-open"></i> 加载
+                        </button>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右侧：预览 + 文件管理 -->
+    <div class="col-md-7">
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-eye"></i> 当前数据预览</h5>
+                {% if current_file %}
+                <span class="badge bg-light text-dark">{{ current_file }} ({{ records_count }}条)</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if current_file %}
+                    <div class="mb-2">
+                        <strong>列信息:</strong>
+                        {% for col in columns %}
+                        <span class="badge bg-secondary me-1">{{ col }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="table-responsive" style="max-height: 400px;">
+                        {{ preview_data|safe }}
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-inbox fa-4x mb-3"></i>
+                        <p class="lead">暂无加载数据</p>
+                        <p>请上传文件或选择内置数据集</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 文件管理 -->
+        <div class="card shadow-sm mt-3">
+            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-folder"></i> 本地文件管理</h5>
+                <small>位置: <code>app/uploads/</code></small>
+            </div>
+            <div class="card-body p-0">
+                {% if file_list %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>文件名</th>
+                                <th>大小</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for f in file_list %}
+                            <tr>
+                                <td>
+                                    <small>
+                                    {% if f.name == original_file %}
+                                    <span class="text-warning">★</span>
+                                    {% endif %}
+                                    {{ f.name }}
+                                    </small>
+                                </td>
+                                <td><small>{{ f.size }}</small></td>
+                                <td>
+                                    {% if f.name == current_file %}
+                                    <span class="badge bg-success">使用中</span>
+                                    {% elif f.name == original_file %}
+                                    <span class="badge bg-warning text-dark">原始</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('upload.download_file', filename=f.name) }}" class="btn btn-sm btn-outline-primary" title="下载">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                    {% if f.name != original_file %}
+                                    <button class="btn btn-sm btn-outline-danger delete-file" data-file="{{ f.name }}" title="删除">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-3">
+                    <small>暂无本地文件</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+$(document).ready(function() {
+    $('#uploadForm').submit(function(e) {
+        e.preventDefault();
+        var formData = new FormData(this);
+        $.ajax({
+            url: '{{ url_for("upload.handle_upload") }}',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(resp) {
+                if (resp.success) { location.reload(); }
+                else { alert('上传失败: ' + resp.error); }
+            },
+            error: function() { alert('请求失败'); }
+        });
+    });
+
+    $('.load-dataset-btn').click(function() {
+        var dataset = $(this).data('dataset');
+        var btn = $(this);
+        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> 加载中');
+        $.ajax({
+            url: '{{ url_for("upload.load_dataset") }}',
+            method: 'POST',
+            data: { dataset: dataset },
+            success: function(resp) {
+                if (resp.success) { location.reload(); }
+                else { alert('加载失败: ' + resp.error); btn.prop('disabled', false).html('<i class="fas fa-folder-open"></i> 加载'); }
+            },
+            error: function() { alert('请求失败'); btn.prop('disabled', false).html('<i class="fas fa-folder-open"></i> 加载'); }
+        });
+    });
+
+    $('.delete-file').click(function() {
+        var file = $(this).data('file');
+        if (!confirm('确认删除 "' + file + '"？')) return;
+        var btn = $(this);
+        btn.prop('disabled', true);
+        $.ajax({
+            url: '/upload/delete/' + encodeURIComponent(file),
+            method: 'DELETE',
+            success: function(resp) {
+                if (resp.success) { location.reload(); }
+                else { alert('删除失败: ' + resp.error); btn.prop('disabled', false); }
+            },
+            error: function() { alert('请求失败'); btn.prop('disabled', false); }
+        });
+    });
+});
+</script>
+{% endblock %}

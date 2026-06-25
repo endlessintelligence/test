@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}数据可视化 - 数据挖掘分析平台{% endblock %}
+{% block content %}
+<div class="row mb-3">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">首页</a></li>
+                <li class="breadcrumb-item active">数据可视化</li>
+            </ol>
+        </nav>
+        <h3><i class="fas fa-chart-line text-warning"></i> 数据可视化</h3>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> {{ error }}，请先前往 <a href="{{ url_for('upload.upload_file') }}">数据管理</a> 上传数据集。</div>
+{% else %}
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-sliders-h"></i> 图表配置</h5>
+            </div>
+            <div class="card-body">
+                <form id="chartForm">
+                    <div class="mb-2">
+                        <label class="form-label">图表类型</label>
+                        <select class="form-select" name="type" id="chartType">
+                            <option value="line">折线图</option>
+                            <option value="bar">柱状图</option>
+                            <option value="scatter">散点图</option>
+                            <option value="histogram">直方图</option>
+                            <option value="box">箱线图</option>
+                            <option value="pie">饼图</option>
+                            <option value="count">计数图</option>
+                            <option value="heatmap">热力图（相关性）</option>
+                            <option value="pair">散点矩阵图</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-2" id="fieldX">
+                        <label class="form-label">X轴/类别列</label>
+                        <select class="form-select" name="x">
+                            <option value="">-- 不选择 --</option>
+                            {% for col in all_cols %}
+                            <option value="{{ col }}">{{ col }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-2" id="fieldY">
+                        <label class="form-label">Y轴/数值列</label>
+                        <select class="form-select" name="y">
+                            <option value="">-- 不选择 --</option>
+                            {% for col in numeric_cols %}
+                            <option value="{{ col }}">{{ col }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-2" id="fieldYCols" style="display:none">
+                        <label class="form-label">多数值列</label>
+                        <select class="form-select" name="y_cols" multiple size="4">
+                            {% for col in numeric_cols %}
+                            <option value="{{ col }}">{{ col }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="small text-muted mt-1"><i class="fas fa-info-circle"></i> 按住 <kbd>Ctrl</kbd> 多选，<kbd>Shift</kbd> 连选</div>
+                    </div>
+
+                    <div class="mb-2" id="fieldColor">
+                        <label class="form-label">颜色分组</label>
+                        <select class="form-select" name="color">
+                            <option value="">-- 不分组 --</option>
+                            {% for col in categorical_cols %}
+                            <option value="{{ col }}">{{ col }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-2" id="fieldBins" style="display:none">
+                        <label class="form-label">分组数 (bins)</label>
+                        <input type="number" class="form-control" name="bins" value="20" min="5" max="100">
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label">图表标题</label>
+                        <input type="text" class="form-control" name="title" placeholder="可选">
+                    </div>
+
+                    <button type="submit" class="btn btn-warning w-100"><i class="fas fa-chart-bar"></i> 生成图表</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-eye"></i> 图表展示</h5>
+            </div>
+            <div class="card-body">
+                <div id="chartContainer" style="width:100%;height:550px;">
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-chart-pie fa-4x mb-3"></i>
+                        <p class="lead">配置参数后点击生成图表</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+var chartType = 'line';
+
+$('#chartType').change(function() {
+    chartType = $(this).val();
+    $('#fieldX').show();
+    $('#fieldY').show();
+    $('#fieldYCols').hide();
+    $('#fieldColor').show();
+    $('#fieldBins').hide();
+    $('#fieldX label').text('X轴/类别列');
+    $('#fieldY label').text('Y轴/数值列');
+
+    if (chartType === 'line' || chartType === 'box') {
+        $('#fieldYCols').show();
+        $('#fieldY label').text('Y轴');
+    } else if (chartType === 'histogram') {
+        $('#fieldX').hide();
+        $('#fieldY label').text('数值列');
+        $('#fieldBins').show();
+        $('#fieldColor').hide();
+    } else if (chartType === 'heatmap') {
+        $('#fieldX').hide();
+        $('#fieldY').hide();
+        $('#fieldYCols').hide();
+        $('#fieldColor').hide();
+    } else if (chartType === 'pair') {
+        $('#fieldX').hide();
+        $('#fieldY').hide();
+        $('#fieldYCols').show();
+        $('#fieldColor label').text('颜色分组(可选)');
+    } else if (chartType === 'count') {
+        $('#fieldY').hide();
+        $('#fieldYCols').hide();
+        $('#fieldColor').hide();
+        $('#fieldX label').text('类别列');
+    } else if (chartType === 'pie') {
+        $('#fieldX label').text('类别列');
+        $('#fieldY label').text('数值列');
+        $('#fieldColor').hide();
+    }
+});
+
+$('#chartForm').submit(function(e) {
+    e.preventDefault();
+    var data = $(this).serialize();
+    var container = document.getElementById('chartContainer');
+
+    $.ajax({
+        url: '{{ url_for("visualize.api_chart") }}',
+        method: 'POST',
+        data: data,
+        success: function(resp) {
+            if (resp.success) {
+                Plotly.newPlot(container, resp.figure.data, resp.figure.layout, {responsive: true});
+            } else {
+                container.innerHTML = '<div class="alert alert-danger">' + resp.error + '</div>';
+            }
+        },
+        error: function() {
+            container.innerHTML = '<div class="alert alert-danger">请求失败</div>';
+        }
+    });
+});
+</script>
+{% endblock %}

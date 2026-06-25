@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}首页 - 数据挖掘分析平台{% endblock %}
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 text-center">
+        <h1 class="display-5"><i class="fas fa-robot text-primary"></i> 数据挖掘分析平台</h1>
+        <p class="lead text-muted">一站式数据预处理、统计分析、可视化与机器学习平台</p>
+    </div>
+</div>
+
+<!-- 功能卡片 -->
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <i class="fas fa-upload fa-3x text-primary mb-3"></i>
+                <h5 class="card-title">数据管理与上传</h5>
+                <p class="card-text">上传 CSV/Excel 数据文件，选择内置数据集，下载处理结果</p>
+                <a href="{{ url_for('upload.upload_file') }}" class="btn btn-outline-primary">进入</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <i class="fas fa-broom fa-3x text-success mb-3"></i>
+                <h5 class="card-title">数据预处理</h5>
+                <p class="card-text">缺失值处理、异常值检测、标准化归一化、编码转换</p>
+                <a href="{{ url_for('preprocessing.preprocess') }}" class="btn btn-outline-success">进入</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <i class="fas fa-chart-pie fa-3x text-info mb-3"></i>
+                <h5 class="card-title">统计分析</h5>
+                <p class="card-text">描述性统计、相关性分析、分布分析、统计图表</p>
+                <a href="{{ url_for('stats.statistics') }}" class="btn btn-outline-info">进入</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <i class="fas fa-chart-line fa-3x text-warning mb-3"></i>
+                <h5 class="card-title">数据可视化</h5>
+                <p class="card-text">折线图、柱状图、散点图、热力图、箱线图等多种图表</p>
+                <a href="{{ url_for('visualize.visualize') }}" class="btn btn-outline-warning">进入</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <i class="fas fa-brain fa-3x text-danger mb-3"></i>
+                <h5 class="card-title">机器学习</h5>
+                <p class="card-text">聚类、贝叶斯、神经网络、SVM、决策树、特征选择、KNN</p>
+                <a href="{{ url_for('ml.ml') }}" class="btn btn-outline-danger">进入</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

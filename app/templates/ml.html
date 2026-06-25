@@ -1,0 +1,449 @@
+﻿{% extends "base.html" %}
+{% block title %}机器学习 - 数据挖掘分析平台{% endblock %}
+{% block content %}
+<div class="row mb-3">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">首页</a></li>
+                <li class="breadcrumb-item active">机器学习</li>
+            </ol>
+        </nav>
+        <h3><i class="fas fa-brain text-danger"></i> 机器学习</h3>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> {{ error }}，请先前往 <a href="{{ url_for('upload.upload_file') }}">数据管理与上传</a> 上传数据集。</div>
+{% else %}
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-danger text-white"><h5 class="mb-0"><i class="fas fa-cog"></i> 算法配置</h5></div>
+            <div class="card-body">
+                <form id="mlForm" novalidate>
+                    <div class="mb-2">
+                        <label class="form-label">算法</label>
+                        <select class="form-select" name="algorithm" id="algoSelect">
+                            <option value="kmeans">K-Means 聚类</option>
+                            <option value="naive_bayes">朴素贝叶斯</option>
+                            <option value="neural_network">神经网络 (MLP)</option>
+                            <option value="svm">支持向量机 (SVM/SVR)</option>
+                            <option value="decision_tree">决策树</option>
+                            <option value="knn">K近邻 (KNN)</option>
+                            <option value="ridge">Ridge 回归</option>
+                            <option value="feature_selection">特征选择</option>
+                        </select>
+                    </div>
+                    <div class="mb-2" id="targetField">
+                        <label class="form-label">目标列 (y)</label>
+                        <select class="form-select" name="target">
+                            <option value="">-- 无监督不选 --</option>
+                            {% for col in all_cols %}
+                            <option value="{{ col }}">{{ col }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">特征列 (X)</label>
+                        <select class="form-select" name="features" multiple size="5">
+                            {% for col in numeric_cols %}
+                            <option value="{{ col }}" selected>{{ col }}</option>
+                            {% endfor %}
+                        </select><div class="small text-muted mt-1"><i class="fas fa-info-circle"></i> 按住 <kbd>Ctrl</kbd> 多选，<kbd>Shift</kbd> 连选</div>
+                    </div>
+                    <div id="algoParams">
+                        <hr><h6>算法参数</h6>
+                        <div class="algo-param" data-algo="kmeans">
+                            <label class="form-label">聚类数 K</label>
+                            <input type="number" class="form-control" name="n_clusters" value="3" min="2" max="20">
+                        </div>
+                        <div class="algo-param" data-algo="naive_bayes neural_network svm decision_tree knn ridge">
+                            <label class="form-label">测试集比例</label>
+                            <input type="number" class="form-control" name="test_size" value="0.3" step="0.05" min="0.1" max="0.5">
+                        </div>
+                        <div class="algo-param" data-algo="neural_network">
+                            <label class="form-label">隐藏层 (逗号分隔)</label>
+                            <input type="text" class="form-control" name="hidden_layers" value="100,50">
+                            <label class="form-label mt-1">最大迭代</label>
+                            <input type="number" class="form-control" name="max_iter" value="500" min="100">
+                            <label class="form-label mt-1">激活函数</label>
+                            <select class="form-select" name="activation">
+                                <option value="relu">ReLU</option>
+                                <option value="tanh">Tanh</option>
+                                <option value="logistic">Logistic</option>
+                            </select>
+                        </div>
+                        <div class="algo-param" data-algo="svm">
+                            <label class="form-label">核函数</label>
+                            <select class="form-select" name="kernel">
+                                <option value="rbf">RBF</option>
+                                <option value="linear">Linear</option>
+                                <option value="poly">Poly</option>
+                                <option value="sigmoid">Sigmoid</option>
+                            </select>
+                            <label class="form-label mt-1">C</label>
+                            <input type="number" class="form-control" name="C" value="1.0" step="0.1" min="0.1">
+                            <label class="form-label mt-1">Gamma</label>
+                            <select class="form-select" name="gamma">
+                                <option value="scale">scale</option>
+                                <option value="auto">auto</option>
+                            </select>
+                        </div>
+                        <div class="algo-param" data-algo="decision_tree">
+                            <label class="form-label">最大深度</label>
+                            <input type="number" class="form-control" name="max_depth" placeholder="默认不限">
+                            <label class="form-label mt-1">最小样本分裂</label>
+                            <input type="number" class="form-control" name="min_samples_split" value="2" min="2">
+                            <label class="form-label mt-1">分裂标准</label>
+                            <select class="form-select" name="criterion">
+                                <option value="gini">Gini</option><option value="entropy">Entropy</option>
+                            </select>
+                        </div>
+                        <div class="algo-param" data-algo="feature_selection">
+                            <label class="form-label">方法</label>
+                            <select class="form-select" name="fs_method">
+                                <option value="f_classif">F检验</option>
+                                <option value="chi2">卡方检验</option>
+                                <option value="mutual_info">互信息</option>
+                            </select>
+                            <label class="form-label mt-1">选择数 K</label>
+                            <input type="number" class="form-control" name="k" value="5" min="1" max="20">
+                        </div>
+                        <div class="algo-param" data-algo="knn">
+                            <label class="form-label">K 值</label>
+                            <input type="number" class="form-control" name="n_neighbors" value="5" min="1" max="50">
+                            <label class="form-label mt-1">权重</label>
+                            <select class="form-select" name="weights">
+                                <option value="distance">距离加权</option>
+                                <option value="uniform">均匀</option>
+                            </select>
+                            <label class="form-label mt-1">距离</label>
+                            <select class="form-select" name="metric">
+                                <option value="euclidean">欧氏</option>
+                                <option value="manhattan">曼哈顿</option>
+                                <option value="minkowski">闵可夫斯基</option>
+                            </select>
+                        </div>
+                        <div class="algo-param" data-algo="ridge">
+                            <label class="form-label">正则化强度 alpha</label>
+                            <input type="number" class="form-control" name="alpha" value="1.0" step="0.1" min="0.01">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-danger w-100 mt-2"><i class="fas fa-play"></i> 训练模型</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 预测卡片 -->
+        <div class="card shadow-sm mt-2" id="predictCard" style="display:none">
+            <div class="card-header bg-success text-white py-1"><small><strong><i class="fas fa-crystal-ball"></i> 预测新数据</strong></small></div>
+            <div class="card-body py-2">
+                <div id="predictInputs"></div>
+                <div class="d-flex gap-1 mt-1">
+                    <button class="btn btn-sm btn-success flex-shrink-0" id="predictBtn"><i class="fas fa-arrow-right"></i> 预测</button>
+                    <div id="predictResult" class="flex-grow-1 small"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-danger text-white"><h5 class="mb-0"><i class="fas fa-chart-line"></i> 运行结果</h5></div>
+            <div class="card-body" id="resultArea">
+                <div class="text-center text-muted py-5">
+                    <i class="fas fa-robot fa-4x mb-3"></i>
+                    <p class="lead">配置算法和参数后点击训练</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 数据参考（训练结果下方） -->
+        <div class="card shadow-sm mt-2" id="previewPanel" style="display:none">
+            <div class="card-header bg-light py-1">
+                <small><strong><i class="fas fa-database"></i> 数据参考</strong>
+                <span class="text-muted ms-2">{{ basic_info.rows }}行 {{ basic_info.cols }}列</span></small>
+            </div>
+            <div class="card-body p-0" style="max-height:280px;overflow:auto">
+                {{ preview|safe }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function updateAlgoParams() {
+    var algo = $('#algoSelect').val();
+    $('.algo-param').hide();
+    $('.algo-param[data-algo*="' + algo + '"]').show();
+    if (['kmeans', 'feature_selection'].indexOf(algo) >= 0) {
+        $('#targetField').hide();
+    } else {
+        $('#targetField').show();
+    }
+}
+$('#algoSelect').change(updateAlgoParams);
+updateAlgoParams();
+
+// 训练
+$('#mlForm').submit(function(e) {
+    e.preventDefault();
+    var btn = $(this).find('button[type="submit"]');
+    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> 训练中...');
+    $.ajax({
+        url: '{{ url_for("ml.api_run") }}',
+        method: 'POST',
+        data: $(this).serialize(),
+        success: function(resp) {
+            btn.prop('disabled', false).html('<i class="fas fa-play"></i> 训练模型');
+            if (resp.success) {
+                renderResult(resp.result, $('#algoSelect').val());
+                // 更新预测输入
+                $('#predictCard').show();
+                $('#previewPanel').show();
+                if (resp.result.features) {
+                    renderPredictInputs(resp.result.features);
+                    $('#predictResult').html('').removeClass();
+                }
+            } else {
+                $('#resultArea').html('<div class="alert alert-danger">' + resp.error + '</div>');
+            }
+        },
+        error: function() {
+            btn.prop('disabled', false).html('<i class="fas fa-play"></i> 训练模型');
+            $('#resultArea').html('<div class="alert alert-danger">请求失败</div>');
+        }
+    });
+});
+
+function renderPredictInputs(features) {
+    var html = '';
+    features.forEach(function(f) {
+        html += '<div class="mb-1"><label class="form-label small">' + f + '</label>';
+        html += '<input type="number" class="form-control form-control-sm pred-input" data-feature="' + f + '" step="any"></div>';
+    });
+    $('#predictInputs').html(html);
+}
+
+$('#predictBtn').click(function() {
+    var btn = $(this);
+    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> 预测中...');
+    $('#predictResult').html('').removeClass();
+
+    var values = {};
+    var hasValue = false;
+    $('.pred-input').each(function() {
+        var val = parseFloat($(this).val());
+        if (!isNaN(val)) { hasValue = true; }
+        values[$(this).data('feature')] = val || 0;
+    });
+    if (!hasValue) {
+        $('#predictResult').addClass('alert alert-warning').html('请输入至少一个特征值');
+        btn.prop('disabled', false).html('<i class="fas fa-arrow-right"></i> 预测');
+        return;
+    }
+
+    $.ajax({
+        url: '{{ url_for("ml.api_predict") }}',
+        method: 'POST',
+        cache: false,
+        contentType: 'application/json',
+        data: JSON.stringify({values: values}),
+        success: function(resp) {
+            if (resp.success) {
+                $('#predictResult').addClass('alert alert-success').html('<strong>预测结果：</strong>' + resp.result.name);
+            } else {
+                $('#predictResult').addClass('alert alert-danger').html(resp.error);
+            }
+        },
+        error: function() {
+            $('#predictResult').addClass('alert alert-danger').html('预测请求失败');
+        },
+        complete: function() {
+            btn.prop('disabled', false).html('<i class="fas fa-arrow-right"></i> 预测');
+        }
+    });
+});
+
+// 渲染结果
+function renderResult(r, algo) {
+    var html = '<div class="row g-2 mb-2">';
+
+    if (algo === 'kmeans') {
+        html += metricCard('轮廓系数', r.silhouette_score, 'danger')
+             +  metricCard('聚类数', r.n_clusters)
+             +  metricCard('惯性', r.inertia)
+             +  metricCard('样本数', r.n_samples);
+        html += '</div>';
+        html += '<h6>各类别数量</h6>' + buildTable(['类别', '数量'], Object.entries(r.cluster_counts));
+
+        if (r.coords && r.labels) {
+            html += '<div id="clusterChart" style="height:400px;margin-top:10px"></div>';
+            setTimeout(function() {
+                var trace = {
+                    x: r.coords.map(function(p){return p[0];}),
+                    y: r.coords.map(function(p){return p[1];}),
+                    mode: 'markers',
+                    type: 'scatter',
+                    marker: {size:8, color: r.labels, colorscale:'Viridis', showscale:true},
+                    text: r.labels.map(function(l){return 'Cluster '+l;})
+                };
+                Plotly.newPlot('clusterChart', [trace], {
+                    title:'聚类 PCA 降维可视化', xaxis:{title:'PC1'}, yaxis:{title:'PC2'},
+                    hovermode:'closest'
+                });
+            }, 100);
+        }
+
+    } else if (algo === 'feature_selection') {
+        html += '</div>';
+        html += '<h6>特征评分</h6>' + buildTable(['特征', '得分', '选择状态'],
+            r.results.map(function(x){return [x.feature, x.score, x.selected ? '✅ 已选' : '❌ 未选'];}));
+        html += '<p class="mt-2"><strong>入选特征：</strong>' + r.selected_features.join(', ') + '</p>';
+        html += '<div id="fsChart" style="height:300px"></div>';
+        setTimeout(function() {
+            var names = r.results.map(function(x){return x.feature;});
+            var scores = r.results.map(function(x){return x.score;});
+            var colors = r.results.map(function(x){return x.selected ? '#28a745' : '#6c757d';});
+            Plotly.newPlot('fsChart', [{
+                x: scores, y: names, type: 'bar', orientation: 'h',
+                marker: {color: colors}
+            }], {title:'特征选择得分', margin:{l:120}});
+        }, 100);
+
+    } else {
+        // 分类/回归
+        if (r.task_type === 'classification') {
+            html += metricCard('准确率', (r.accuracy * 100).toFixed(2) + '%', 'primary')
+                 +  metricCard('测试样本', r.n_samples)
+                 +  metricCard('特征数', r.n_features)
+                 +  metricCard('类别数', r.n_classes);
+            html += '</div>';
+
+            if (r.loss !== undefined) html += '<p><strong>最终损失：</strong>' + r.loss + '</p>';
+            if (r.n_support_vectors !== undefined) html += '<p><strong>支持向量数：</strong>' + r.n_support_vectors + '</p>';
+
+            // 混淆矩阵热力图
+            html += '<h6 class="mt-2">混淆矩阵</h6><div id="cmChart" style="height:350px"></div>';
+            setTimeout(function() {
+                var z = r.confusion_matrix;
+                var annotations = [];
+                for (var i = 0; i < z.length; i++) {
+                    for (var j = 0; j < z[i].length; j++) {
+                        annotations.push({
+                            x: j, y: i, text: String(z[i][j]),
+                            font: {color: z[i][j] > Math.max(...[].concat(...z))/2 ? 'white' : 'black'},
+                            showarrow: false
+                        });
+                    }
+                }
+                Plotly.newPlot('cmChart', [{
+                    z: z, x: r.target_names, y: r.target_names,
+                    type: 'heatmap', colorscale: 'Blues', hoverongaps: false
+                }], {
+                    title: '混淆矩阵热力图',
+                    xaxis: {title: '预测值'},
+                    yaxis: {title: '真实值'},
+                    annotations: annotations,
+                    width: 400, height: 320
+                });
+            }, 100);
+
+            // 分类报告
+            html += '<h6 class="mt-2">分类报告</h6>' + buildTable(
+                ['类别', '精确率', '召回率', 'F1-score', '支持数'],
+                r.target_names.filter(function(n){return r.classification_report[n];}).map(function(n){
+                    return [n, r.classification_report[n].precision.toFixed(4),
+                            r.classification_report[n].recall.toFixed(4),
+                            r.classification_report[n]['f1-score'].toFixed(4),
+                            r.classification_report[n].support];
+                })
+            );
+
+        } else {
+            // 回归
+            html += metricCard('R²', r.r2, 'primary')
+                 +  metricCard('RMSE', r.rmse)
+                 +  metricCard('MAE', r.mae)
+                 +  metricCard('MSE', r.mse);
+            html += '</div>';
+
+            // 真实值 vs 预测值
+            html += '<div id="regChart" style="height:350px"></div>';
+            setTimeout(function() {
+                var allVals = r.y_true.concat(r.y_pred);
+                var minV = Math.min(...allVals);
+                var maxV = Math.max(...allVals);
+                var pad = (maxV - minV) * 0.1 || 10;
+                Plotly.newPlot('regChart', [
+                    {x: r.y_true, y: r.y_pred, mode: 'markers', type: 'scatter',
+                     name: '预测值', marker: {color: '#dc3545', size: 6}},
+                    {x: [minV, maxV], y: [minV, maxV],
+                     mode: 'lines', name: '理想线', line: {dash: 'dash', color: '#333'}}
+                ], {title: '真实值 vs 预测值',
+                    xaxis: {title: '真实值', range: [minV - pad, maxV + pad]},
+                    yaxis: {title: '预测值', range: [minV - pad, maxV + pad]}});
+            }, 100);
+
+            if (r.coefficients) {
+                html += '<h6 class="mt-2">回归系数</h6>' + buildTable(['特征', '系数'],
+                    Object.entries(r.coefficients).sort(function(a,b){return Math.abs(b[1])-Math.abs(a[1]);}));
+            }
+        }
+
+        // 特征重要性 (决策树)
+        if (r.feature_importance) {
+            html += '<h6 class="mt-2">特征重要性</h6><div id="fiChart" style="height:300px"></div>';
+            setTimeout(function() {
+                var items = Object.entries(r.feature_importance);
+                Plotly.newPlot('fiChart', [{
+                    x: items.map(function(x){return x[1];}),
+                    y: items.map(function(x){return x[0];}),
+                    type: 'bar', orientation: 'h',
+                    marker: {color: '#dc3545'}
+                }], {title:'特征重要性', margin:{l:120}});
+            }, 100);
+        }
+
+        // 决策树结构
+        if (r.tree_text) {
+            html += '<h6 class="mt-2">决策树结构</h6><pre class="bg-light p-2 small" style="max-height:300px;overflow:auto">' + r.tree_text + '</pre>';
+        }
+
+        // 参数回显
+        if (r.params) {
+            html += '<h6 class="mt-2">模型参数</h6><div class="small text-muted">';
+            Object.entries(r.params).forEach(function(e) {
+                html += '<span class="badge bg-secondary me-1">' + e[0] + ': ' + e[1] + '</span>';
+            });
+            html += '</div>';
+        }
+    }
+
+    $('#resultArea').html(html);
+}
+
+function metricCard(label, value, color) {
+    return '<div class="col-3"><div class="card bg-light p-2 text-center"><strong>' + label + '</strong><br><span class="text-' + (color||'dark') + ' h5 mb-0">' + value + '</span></div></div>';
+}
+
+function buildTable(headers, rows) {
+    var h = '<thead class="table-light"><tr>' + headers.map(function(x){return '<th>'+x+'</th>';}).join('') + '</tr></thead>';
+    var b = '<tbody>' + rows.map(function(r){
+        return '<tr>' + r.map(function(c){return '<td>'+(c==null?'-':c)+'</td>';}).join('') + '</tr>';
+    }).join('') + '</tbody>';
+    return '<table class="table table-sm table-bordered">' + h + b + '</table>';
+}
+
+// 初始隐藏预测和数据参考面板
+$('#predictCard, #previewPanel').hide();
+</script>
+{% endblock %}
+
+
+
